@@ -32,11 +32,9 @@ class CharList extends Component {
     render() {
         const { charList, loading, error } = this.state;
 
-        const items = <View chars={charList} />;
-
         const errorMessage = error ? <ErrorMessage /> : null;
         const spinner = loading ? <Spinner /> : null;
-        const content = !(error || loading) ? items : null;
+        const content = !(error || loading) ? <View chars={charList} /> : null;
         return (
             <div className="char__list">
                 {errorMessage}
