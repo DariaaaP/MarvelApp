@@ -7,11 +7,6 @@ import "./randomChar.scss";
 import mjolnir from "../../resources/img/mjolnir.png";
 
 class RandomChar extends Component {
-    constructor(props) {
-        super(props);
-        this.updateChar();
-    }
-
     //синтаксис полей классов без конструктора
     state = {
         char: {},
@@ -19,7 +14,15 @@ class RandomChar extends Component {
         error: false,
     };
 
-    marvelService = new MarvelService(); //новое свойство у класса
+    marvelService = new MarvelService(); //новое свойство у класса, которое является новым экземпляром класса MarvelService
+
+    componentDidMount() {
+        this.updateChar();
+        // this.timerId = setInterval(this.updateChar, 3000);
+    }
+    componentWillUnmount() {
+        // clearInterval(this.timerId);
+    }
 
     onCharLoaded = (char) => {
         this.setState({ char, loading: false });
@@ -54,7 +57,10 @@ class RandomChar extends Component {
                         Do you want to get to know him better?
                     </p>
                     <p className="randomchar__title">Or choose another one</p>
-                    <button className="button button__main">
+                    <button
+                        onClick={this.updateChar}
+                        className="button button__main"
+                    >
                         <div className="inner">try it</div>
                     </button>
                     <img
@@ -71,12 +77,21 @@ class RandomChar extends Component {
 //рендерящий компонент
 const View = ({ char }) => {
     const { name, description, thumbnail, homepage, wiki } = char;
+
+    let imgStyle = { objectFit: "cover" };
+    if (
+        thumbnail ===
+        "http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg"
+    ) {
+        imgStyle = { objectFit: "unset" };
+    }
     return (
         <div className="randomchar__block">
             <img
                 src={thumbnail}
                 alt="Random character"
                 className="randomchar__img"
+                style={imgStyle}
             />
             <div className="randomchar__info">
                 <p className="randomchar__name">{name}</p>
