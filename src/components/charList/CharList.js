@@ -10,19 +10,46 @@ class CharList extends Component {
         charList: [],
         loading: true,
         error: false,
+        newItemLoading: false,
+        offset: 210,
+        charEnded: false,
     };
 
     marvelService = new MarvelService();
 
     componentDidMount() {
-        this.marvelService
-            .getAllCharacters()
-            .then(this.onCharListLoad)
-            .catch(this.onError);
+        this.onRequest();
     }
 
-    onCharListLoad = (charList) => {
-        this.setState({ charList, loading: false });
+    onRequest = (offset) => {
+        //метод загрузки данных c сервера + Пагинация
+        this.onCharListLoading(); //не влияет на первоначальную загрузку, но необходим для дальнейшей работы
+        this.marvelService
+            .getAllCharacters(offset)
+            .then(this.onCharListLoad)
+            .catch(this.onError);
+    };
+
+    onCharListLoading = () => {
+        this.setState({
+            newItemLoading: true,
+        });
+    };
+
+    onCharListLoad = (newCharList) => {
+        let ended = false;
+        if (newCharList.length < 9) {
+            ended = true;
+        }
+
+        //newCharList -- новые данные, которые формируют новый массив
+        this.setState(({ offset, charList }) => ({
+            charList: [...charList, ...newCharList], //создаём новый массив со старыми и новыми данными
+            loading: false,
+            newItemLoading: false,
+            offset: offset + 9, //увеличение отступа загрузки персонажей
+            charEnded: ended,
+        }));
     };
 
     onError = () => {
@@ -34,7 +61,9 @@ class CharList extends Component {
             let imgStyle = { objectFit: "cover" };
             if (
                 item.thumbnail ===
-                "http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg"
+                    "http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg" ||
+                item.thumbnail ===
+                    "http://i.annihil.us/u/prod/marvel/i/mg/f/60/4c002e0305708.gif"
             ) {
                 imgStyle = { objectFit: "unset" };
             }
@@ -58,20 +87,26 @@ class CharList extends Component {
     }
 
     render() {
-        const { charList, loading, error } = this.state;
+        const { charList, loading, error, newItemLoading, offset, charEnded } =
+            this.state;
 
         const items = this.renderItems(charList);
 
         const errorMessage = error ? <ErrorMessage /> : null;
-        const spinner = loading ? <Spinner /> : null;
+        const spinner = loading || newItemLoading ? <Spinner /> : null;
         const content = !(loading || error) ? items : null;
 
         return (
             <div className="char__list">
                 {errorMessage}
-                {spinner}
                 {content}
-                <button className="button button__main button__long">
+                {spinner}
+                <button
+                    className="button button__main button__long"
+                    disabled={newItemLoading}
+                    style={{ display: charEnded ? "none" : "block" }}
+                    onClick={() => this.onRequest(offset)}
+                >
                     <div className="inner">load more</div>
                 </button>
             </div>
