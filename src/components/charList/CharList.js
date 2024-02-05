@@ -1,4 +1,4 @@
-import { Component } from "react";
+import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import Spinner from "../spinner/Spinner";
 import ErrorMessage from "../errorMessage/ErrorMessage";
@@ -6,58 +6,63 @@ import MarvelService from "../../services/MarvelService";
 
 import "./charList.scss";
 
-class CharList extends Component {
-    state = {
-        charList: [],
-        loading: true,
-        error: false,
-        newItemLoading: false,
-        offset: 210,
-        charEnded: false,
-    };
+const CharList = (props) => {
+    const [charList, setCharList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [newItemLoading, setNewItemLoading] = useState(false);
+    const [offset, setOffset] = useState(210);
+    const [charEnded, setCharEnded] = useState(false);
 
-    marvelService = new MarvelService();
+    const marvelService = new MarvelService();
 
-    componentDidMount() {
-        this.onRequest();
-    }
+    useEffect(() => {
+        onRequest();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    onRequest = (offset) => {
+    const onRequest = (offset) => {
         //метод загрузки данных c сервера + Пагинация
-        this.onCharListLoading(); //не влияет на первоначальную загрузку, но необходим для дальнейшей работы
-        this.marvelService
+        onCharListLoading(); //не влияет на первоначальную загрузку, но необходим для дальнейшей работы
+        marvelService
             .getAllCharacters(offset)
-            .then(this.onCharListLoad)
-            .catch(this.onError);
+            .then(onCharListLoad)
+            .catch(onError);
     };
 
-    onCharListLoading = () => {
-        this.setState({
-            newItemLoading: true,
-        });
+    const onCharListLoading = () => {
+        setNewItemLoading(true);
     };
 
-    onCharListLoad = (newCharList) => {
+    const onCharListLoad = (newCharList) => {
         let ended = false;
         if (newCharList.length < 9) {
             ended = true;
         }
 
-        //newCharList -- новые данные, которые формируют новый массив
-        this.setState(({ offset, charList }) => ({
-            charList: [...charList, ...newCharList], //создаём новый массив со старыми и новыми данными
-            loading: false,
-            newItemLoading: false,
-            offset: offset + 9, //увеличение отступа загрузки персонажей
-            charEnded: ended,
-        }));
+        setCharList((charList) => [...charList, ...newCharList]);
+        setLoading(false);
+        setNewItemLoading(false);
+        setOffset((offset) => offset + 9);
+        setCharEnded((charEnded) => ended);
     };
 
-    onError = () => {
-        this.setState({ loading: false, error: true });
+    const onError = () => {
+        setLoading(false);
+        setError(true);
     };
 
-    renderItems(arr) {
+    const itemRefs = useRef([]);
+
+    const focusOnItem = (id) => {
+        itemRefs.current.forEach((item) =>
+            item.classList.remove("char__item_selected")
+        );
+        itemRefs.current[id].classList.add("char__item_selected");
+        itemRefs.current[id].focus();
+    };
+
+    function renderItems(arr) {
         const items = arr.map((item, i) => {
             let imgStyle = { objectFit: "cover" };
 
@@ -69,20 +74,22 @@ class CharList extends Component {
             ) {
                 imgStyle = { objectFit: "unset" };
             }
-            const active = item.id === this.props.charId;
-            const clazz = active
-                ? "char__item char__item_selected"
-                : "char__item";
+
             return (
                 <li
-                    className={clazz}
+                    ref={(el) => (itemRefs.current[i] = el)}
+                    className="char__item"
                     tabIndex={0}
                     key={item.id}
-                    onClick={() => this.props.onCharSelected(item.id)}
+                    onClick={() => {
+                        props.onCharSelected(item.id);
+                        focusOnItem(i);
+                    }}
                     onKeyPress={(e) => {
                         e.preventDefault();
                         if (e.key === " " || e.key === "Enter") {
-                            this.props.onCharSelected(item.id);
+                            props.onCharSelected(item.id);
+                            focusOnItem(i);
                         }
                     }}
                 >
@@ -98,33 +105,28 @@ class CharList extends Component {
         return <ul className="char__grid">{items}</ul>;
     }
 
-    render() {
-        const { charList, loading, error, newItemLoading, offset, charEnded } =
-            this.state;
+    const items = renderItems(charList);
 
-        const items = this.renderItems(charList);
+    const errorMessage = error ? <ErrorMessage /> : null;
+    const spinner = loading || newItemLoading ? <Spinner /> : null;
+    const content = !(loading || error) ? items : null;
 
-        const errorMessage = error ? <ErrorMessage /> : null;
-        const spinner = loading || newItemLoading ? <Spinner /> : null;
-        const content = !(loading || error) ? items : null;
-
-        return (
-            <div className="char__list">
-                {errorMessage}
-                {content}
-                {spinner}
-                <button
-                    className="button button__main button__long"
-                    disabled={newItemLoading}
-                    style={{ display: charEnded ? "none" : "block" }}
-                    onClick={() => this.onRequest(offset)}
-                >
-                    <div className="inner">load more</div>
-                </button>
-            </div>
-        );
-    }
-}
+    return (
+        <div className="char__list">
+            {errorMessage}
+            {content}
+            {spinner}
+            <button
+                className="button button__main button__long"
+                disabled={newItemLoading}
+                style={{ display: charEnded ? "none" : "block" }}
+                onClick={() => onRequest(offset)}
+            >
+                <div className="inner">load more</div>
+            </button>
+        </div>
+    );
+};
 
 CharList.propTypes = {
     onCharSelected: PropTypes.func.isRequired,
