@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import AnimationPage from "../animation/AnimatedPage";
 import useMarvelService from "../../services/MarvelService";
 import Spinner from "../spinner/Spinner";
 import Page404 from "./404";
@@ -31,20 +32,18 @@ const SingleComicPage = () => {
         <View comic={comic} />
     ) : null;
     return (
-        <>
+        <AnimationPage>
             {page404}
             {spinner}
             {content}
-        </>
+        </AnimationPage>
     );
 };
 
 const View = ({ comic }) => {
     const { title, description, pageCount, thumbnail, language, price } = comic;
     return (
-        <div
-            className="single-comic"
-        >
+        <div className="single-comic">
             <img src={thumbnail} alt={title} className="single-comic__img" />
             <div className="single-comic__info">
                 <h2 className="single-comic__name">{title}</h2>
