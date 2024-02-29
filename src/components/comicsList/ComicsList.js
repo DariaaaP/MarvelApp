@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import useMarvelService from "../../services/MarvelService";
 import ErrorMessage from "../errorMessage/ErrorMessage";
 import Spinner from "../spinner/Spinner";
@@ -13,6 +14,8 @@ const ComicsList = () => {
     const [comicsEnded, setComicsEnded] = useState(false);
 
     const { loading, error, getAllComics } = useMarvelService();
+
+    let indexDelayForAnimation = 0;
 
     useEffect(() => {
         onRequest(offset, true);
@@ -37,10 +40,34 @@ const ComicsList = () => {
         setComicsEnded(ended);
     };
 
+    const fadeInAnimationVariants = {
+        initial: {
+            opacity: 0,
+        },
+        animate: (indexDelayForAnimation) => ({
+            opacity: 1,
+            transition: {
+                delay: 0.3 * indexDelayForAnimation,
+            },
+        }),
+    };
+
     function renderItems(arr) {
         const items = arr.map((item, i) => {
+            if (indexDelayForAnimation >= 8) {
+                indexDelayForAnimation = 0;
+            }
+            indexDelayForAnimation += 1;
             return (
-                <li className="comics__item" tabIndex={0} key={i}>
+                <motion.li
+                    className="comics__item"
+                    tabIndex={0}
+                    key={i}
+                    variants={fadeInAnimationVariants}
+                    initial="initial"
+                    animate="animate"
+                    custom={indexDelayForAnimation}
+                >
                     <Link to={`/comics/${item.id}`}>
                         <img
                             src={item.thumbnail}
@@ -50,7 +77,7 @@ const ComicsList = () => {
                         <div className="comics__item-name">{item.title}</div>
                         <div className="comics__item-price">{item.price}</div>
                     </Link>
-                </li>
+                </motion.li>
             );
         });
         return <ul className="comics__grid">{items}</ul>;

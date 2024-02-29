@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import PropTypes from "prop-types";
 import Spinner from "../spinner/Spinner";
 import ErrorMessage from "../errorMessage/ErrorMessage";
@@ -14,6 +15,8 @@ const CharList = (props) => {
 
     const { loading, error, getAllCharacters } = useMarvelService();
 
+    let indexDelayForAnimation = 0;
+
     useEffect(() => {
         onRequest(offset, true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -25,7 +28,7 @@ const CharList = (props) => {
         getAllCharacters(offset).then(onCharListLoad);
     };
 
-    const onCharListLoad = (newCharList) => {
+    const onCharListLoad = async (newCharList) => {
         let ended = false;
         if (newCharList.length < 9) {
             ended = true;
@@ -47,9 +50,25 @@ const CharList = (props) => {
         itemRefs.current[id].focus();
     };
 
+    const fadeInAnimationVariants = {
+        initial: {
+            opacity: 0,
+        },
+        animate: (indexDelayForAnimation) => ({
+            opacity: 1,
+            transition: {
+                delay: 0.3 * indexDelayForAnimation,
+            },
+        }),
+    };
+
     function renderItems(arr) {
         const items = arr.map((item, i) => {
             let imgStyle = { objectFit: "cover" };
+            if (indexDelayForAnimation >= 9) {
+                indexDelayForAnimation = 0;
+            }
+            indexDelayForAnimation += 1;
 
             if (
                 item.thumbnail ===
@@ -61,7 +80,11 @@ const CharList = (props) => {
             }
 
             return (
-                <li
+                <motion.li
+                    variants={fadeInAnimationVariants}
+                    initial="initial"
+                    animate="animate"
+                    custom={indexDelayForAnimation}
                     ref={(el) => (itemRefs.current[i] = el)}
                     className="char__item"
                     tabIndex={0}
@@ -84,7 +107,7 @@ const CharList = (props) => {
                         style={imgStyle}
                     />
                     <div className="char__name">{item.name}</div>
-                </li>
+                </motion.li>
             );
         });
         return <ul className="char__grid">{items}</ul>;

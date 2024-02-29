@@ -22,7 +22,6 @@ const CharInfo = (props) => {
         if (!charId) {
             return;
         }
-
         clearError();
         getCharacter(charId).then(onCharLoaded);
     }
@@ -60,10 +59,8 @@ const View = ({ char }) => {
     const items =
         comics.length === 0
             ? "There is no comics with this character"
-            : comics.slice(0, 10).map((item, i) => {
-                  const comicId = item.resourceURI
-                      .match(/(\d{3,5})/gi)
-                      .join("");
+            : comics.slice(0, 10).map((item) => {
+                  const comicId = item.resourceURI.slice(43);
                   return (
                       <Link
                           to={`/comics/${comicId}`}
