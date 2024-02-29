@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AnimationPage from "../animation/AnimatedPage";
 import RandomChar from "../randomChar/RandomChar";
 import CharList from "../charList/CharList";
 import CharInfo from "../charInfo/CharInfo";
@@ -12,7 +13,7 @@ const MainPage = () => {
     };
 
     return (
-        <>
+        <AnimationPage>
             <ErrorBoundary>
                 <RandomChar />
             </ErrorBoundary>
@@ -28,7 +29,7 @@ const MainPage = () => {
                 </ErrorBoundary>
             </div>
             <img className="bg-decoration" src={decoration} alt="vision" />
-        </>
+        </AnimationPage>
     );
 };
 
