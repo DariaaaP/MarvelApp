@@ -1,11 +1,31 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import PropTypes from "prop-types";
-import Spinner from "../spinner/Spinner";
+
 import ErrorMessage from "../errorMessage/ErrorMessage";
+import Spinner from "../spinner/Spinner";
+
 import useMarvelService from "../../services/MarvelService";
 
 import "./charList.scss";
+
+const setContent = (process, Component, newItemLoading) => {
+    switch (process) {
+        case "waiting":
+            return <Spinner />;
+
+        case "loading":
+            return newItemLoading ? <Component /> : <Spinner />;
+
+        case "confirmed":
+            return <Component />;
+
+        case "error":
+            return <ErrorMessage />;
+
+        default:
+            throw new Error("Unexpected process state");
+    }
+};
 
 const CharList = (props) => {
     const [charList, setCharList] = useState([]);
@@ -13,9 +33,7 @@ const CharList = (props) => {
     const [offset, setOffset] = useState(210);
     const [charEnded, setCharEnded] = useState(false);
 
-    const { loading, error, getAllCharacters } = useMarvelService();
-
-    let indexDelayForAnimation = 0;
+    const { getAllCharacters, process, setProcess } = useMarvelService();
 
     useEffect(() => {
         onRequest(offset, true);
@@ -25,7 +43,9 @@ const CharList = (props) => {
     const onRequest = (offset, initial) => {
         //метод загрузки данных c сервера + Пагинация
         initial ? setNewItemLoading(false) : setNewItemLoading(true); //не влияет на первоначальную загрузку, но необходим для дальнейшей работы
-        getAllCharacters(offset).then(onCharListLoad);
+        getAllCharacters(offset)
+            .then(onCharListLoad)
+            .then(() => setProcess("confirmed"));
     };
 
     const onCharListLoad = async (newCharList) => {
@@ -50,25 +70,9 @@ const CharList = (props) => {
         itemRefs.current[id].focus();
     };
 
-    const fadeInAnimationVariants = {
-        initial: {
-            opacity: 0,
-        },
-        animate: (indexDelayForAnimation) => ({
-            opacity: 1,
-            transition: {
-                delay: 0.3 * indexDelayForAnimation,
-            },
-        }),
-    };
-
     function renderItems(arr) {
         const items = arr.map((item, i) => {
             let imgStyle = { objectFit: "cover" };
-            if (indexDelayForAnimation >= 9) {
-                indexDelayForAnimation = 0;
-            }
-            indexDelayForAnimation += 1;
 
             if (
                 item.thumbnail ===
@@ -80,11 +84,7 @@ const CharList = (props) => {
             }
 
             return (
-                <motion.li
-                    variants={fadeInAnimationVariants}
-                    initial="initial"
-                    animate="animate"
-                    custom={indexDelayForAnimation}
+                <li
                     ref={(el) => (itemRefs.current[i] = el)}
                     className="char__item"
                     tabIndex={0}
@@ -107,22 +107,15 @@ const CharList = (props) => {
                         style={imgStyle}
                     />
                     <div className="char__name">{item.name}</div>
-                </motion.li>
+                </li>
             );
         });
         return <ul className="char__grid">{items}</ul>;
     }
 
-    const items = renderItems(charList);
-
-    const errorMessage = error ? <ErrorMessage /> : null;
-    const spinner = loading && !newItemLoading ? <Spinner /> : null;
-
     return (
         <div className="char__list">
-            {errorMessage}
-            {spinner}
-            {items}
+            {setContent(process, () => renderItems(charList), newItemLoading)}
             <button
                 className="button button__main button__long"
                 disabled={newItemLoading}

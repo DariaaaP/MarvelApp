@@ -1,11 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import useMarvelService from "../../services/MarvelService";
 import ErrorMessage from "../errorMessage/ErrorMessage";
 import Spinner from "../spinner/Spinner";
 
 import "./comicsList.scss";
+
+const setContent = (process, Component, newItemLoading) => {
+    switch (process) {
+        case "waiting":
+            return <Spinner />;
+
+        case "loading":
+            return newItemLoading ? <Component /> : <Spinner />;
+
+        case "confirmed":
+            return <Component />;
+
+        case "error":
+            return <ErrorMessage />;
+
+        default:
+            throw new Error("Unexpected process state");
+    }
+};
 
 const ComicsList = () => {
     const [comicsList, setComicsList] = useState([]);
@@ -13,9 +31,7 @@ const ComicsList = () => {
     const [offset, setOffset] = useState(359);
     const [comicsEnded, setComicsEnded] = useState(false);
 
-    const { loading, error, getAllComics } = useMarvelService();
-
-    let indexDelayForAnimation = 0;
+    const { getAllComics, process, setProcess } = useMarvelService();
 
     useEffect(() => {
         onRequest(offset, true);
@@ -25,7 +41,9 @@ const ComicsList = () => {
     const onRequest = (offset, initial) => {
         //метод загрузки данных c сервера + Пагинация
         initial ? setNewItemLoading(false) : setNewItemLoading(true);
-        getAllComics(offset).then(onComicsListLoad);
+        getAllComics(offset)
+            .then(onComicsListLoad)
+            .then(() => setProcess("confirmed"));
     };
 
     const onComicsListLoad = (newComicsList) => {
@@ -40,34 +58,10 @@ const ComicsList = () => {
         setComicsEnded(ended);
     };
 
-    const fadeInAnimationVariants = {
-        initial: {
-            opacity: 0,
-        },
-        animate: (indexDelayForAnimation) => ({
-            opacity: 1,
-            transition: {
-                delay: 0.3 * indexDelayForAnimation,
-            },
-        }),
-    };
-
     function renderItems(arr) {
         const items = arr.map((item, i) => {
-            if (indexDelayForAnimation >= 8) {
-                indexDelayForAnimation = 0;
-            }
-            indexDelayForAnimation += 1;
             return (
-                <motion.li
-                    className="comics__item"
-                    tabIndex={0}
-                    key={i}
-                    variants={fadeInAnimationVariants}
-                    initial="initial"
-                    animate="animate"
-                    custom={indexDelayForAnimation}
-                >
+                <li className="comics__item" tabIndex={0} key={i}>
                     <Link to={`/comics/${item.id}`}>
                         <img
                             src={item.thumbnail}
@@ -77,22 +71,15 @@ const ComicsList = () => {
                         <div className="comics__item-name">{item.title}</div>
                         <div className="comics__item-price">{item.price}</div>
                     </Link>
-                </motion.li>
+                </li>
             );
         });
         return <ul className="comics__grid">{items}</ul>;
     }
 
-    const items = renderItems(comicsList);
-
-    const errorMessage = error ? <ErrorMessage /> : null;
-    const spinner = loading && !newItemLoading ? <Spinner /> : null;
-
     return (
         <div className="comics__list">
-            {errorMessage}
-            {spinner}
-            {items}
+            {setContent(process, () => renderItems(comicsList), newItemLoading)}
             <button
                 className="button button__main button__long"
                 disabled={newItemLoading}
